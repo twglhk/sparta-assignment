@@ -7,9 +7,7 @@ namespace TDS.Zombie
     {
         [Header("Movement")]
         public float Speed = 2f;
-        public float FloatForce = 5f;
-        public float MaxFloatSpeed = 7f;
-        public float CustomGravity = 15f;
+        public float FloatSpeed = 5f;  // 부유 시 회전 속도
 
         [Header("Raycast Settings")]
         public float RaycastDistance = 1f;
@@ -19,8 +17,9 @@ namespace TDS.Zombie
         public float BackRaycastAngle = 15f;
         public float UpperRaycastAngle = 45f;
 
-        [Header("Jump Settings")]
+        [Header("Float Settings")]
         public float FloatDuration = 0.5f;
-        public float JumpCooldown = 1.0f;
+        public float FloatCooldown = 1.0f;
+        public float FloatHeightOffset = 1.0f;  // 타겟 위치의 수직 오프셋
     }
 } 

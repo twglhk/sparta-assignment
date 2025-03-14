@@ -1,10 +1,12 @@
 using UnityEngine;
-using System;
 using Cysharp.Threading.Tasks;
 using System.Threading;
 
 namespace TDS.Zombie
 {
+    /// <summary>
+    /// 좀비의 이동과 장애물 타기 동작을 제어하는 컴포넌트
+    /// </summary>
     public sealed class ZombieMoveController : MonoBehaviour
     {
         [SerializeField] private Rigidbody2D _rigidbody;
@@ -13,169 +15,234 @@ namespace TDS.Zombie
         private LayerMask _zombieLayer;
         private RaycastHit2D[] _frontHits;
         private RaycastHit2D[] _backHits;
-        private RaycastHit2D[] _frontUpperHits;  // 전방 상단 체크용
+        private RaycastHit2D[] _frontUpperHits;
         private CancellationTokenSource _cts;
-        private bool _isFloating;           // 현재 부력이 적용 중인지
-        private bool _canStartNewJump = false;  // 시작 시 false로 변경
-        private float _jumpTimer = 1.0f;        // 시작 시 쿨다운이 완료된 상태로 시작
+        
+        // 부유 상태 관련 변수들
+        private bool _isFloating;
+        private bool _canStartFloating;
+        private float _floatCooldownTimer;
+        private float _floatProgressTimer;
+        private Vector2 _floatStartPosition;
+        private Vector2 _floatTargetPosition;
 
-        private const int MAX_HITS = 2;
-        private const float X_MOVE_DIRECTION = -1.0f;
-        private const float JUMP_THRESHOLD = 0.1f;
-        private const int SELF_INDEX = 1;
-        private const float COOLDOWN_CHECK_INTERVAL = 0.1f;
+        // 상수 정의
+        private const int MAX_RAYCAST_HITS = 2;
+        private const int RAYCAST_SELF_INDEX = 1;
+        private const float MOVE_DIRECTION = -1f;
+        private const float FLOAT_HEIGHT_MULTIPLIER = 0.5f;
+        private const float POSITION_SMOOTHING_MULTIPLIER = 10f;
+        private const float HALF_PI = Mathf.PI * 0.5f;
+        private const float INITIAL_COOLDOWN = 1f;
+
+        private static readonly Vector2 BaseRaycastDirection = Vector2.left;
 
 #if UNITY_EDITOR
         private void OnValidate()
         {
             if (_zombieData == null)
             {
-                Debug.LogError($"ZombieData is not assigned to {gameObject.name}!");
+                Debug.LogError($"[{nameof(ZombieMoveController)}] ZombieData is not assigned to {gameObject.name}!");
             }
         }
 
         private void OnDrawGizmos()
         {
-            if (!Application.isPlaying || _zombieData == null) return;
+            if (_zombieData == null) return;
 
-            Vector2 rayStart = (Vector2)transform.position + Vector2.up * _zombieData.RaycastHeightOffset;
-            Vector2 baseDirection = Vector2.right * (_rigidbody.velocity.x > 0 ? 1 : -1);
+            Vector2 rayStart = GetRaycastOrigin();
 
-            Vector2 frontDirection = Quaternion.Euler(0, 0, _zombieData.FrontRaycastAngle) * baseDirection;
-            Vector2 backDirection = Quaternion.Euler(0, 0, _zombieData.BackRaycastAngle) * -baseDirection;
-            Vector2 frontUpperDirection = Quaternion.Euler(0, 0, _zombieData.UpperRaycastAngle) * baseDirection;
+            // 레이캐스트 방향 계산
+            Vector2 frontDir = CalculateRaycastDirection(_zombieData.FrontRaycastAngle);
+            Vector2 backDir = CalculateRaycastDirection(_zombieData.BackRaycastAngle, true);
+            Vector2 upperDir = CalculateRaycastDirection(_zombieData.UpperRaycastAngle);
 
-            Gizmos.color = Color.red;
-            Gizmos.DrawRay(rayStart, frontDirection * _zombieData.RaycastDistance);
-            Gizmos.color = Color.blue;
-            Gizmos.DrawRay(rayStart, backDirection * _zombieData.RaycastDistance);
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawRay(rayStart, frontUpperDirection * _zombieData.UpperRaycastDistance);
+            // 레이캐스트 시각화
+            DrawRaycastGizmo(rayStart, frontDir, _zombieData.RaycastDistance, Color.red);
+            DrawRaycastGizmo(rayStart, backDir, _zombieData.RaycastDistance, Color.blue);
+            DrawRaycastGizmo(rayStart, upperDir, _zombieData.UpperRaycastDistance, Color.yellow);
+        }
+
+        private void DrawRaycastGizmo(Vector2 start, Vector2 direction, float distance, Color color)
+        {
+            Gizmos.color = color;
+            Gizmos.DrawRay(start, direction * distance);
         }
 #endif
 
         private void Start()
         {
-            _rigidbody.gravityScale = 0f;  // 기본 중력 비활성화
+            InitializeComponents();
+            StartFloatingCheck().Forget();
+        }
+
+        private void InitializeComponents()
+        {
+            _rigidbody.gravityScale = 1f;
             _rigidbody.constraints = RigidbodyConstraints2D.FreezeRotation;
             _zombieLayer = 1 << gameObject.layer;
 
-            _frontHits = new RaycastHit2D[MAX_HITS];
-            _backHits = new RaycastHit2D[MAX_HITS];
-            _frontUpperHits = new RaycastHit2D[MAX_HITS];
+            _frontHits = new RaycastHit2D[MAX_RAYCAST_HITS];
+            _backHits = new RaycastHit2D[MAX_RAYCAST_HITS];
+            _frontUpperHits = new RaycastHit2D[MAX_RAYCAST_HITS];
 
+            _canStartFloating = false;
+            _floatCooldownTimer = INITIAL_COOLDOWN;
             _cts = new CancellationTokenSource();
-            StartJumpCheck().Forget();
+        }
+
+        private void FixedUpdate()
+        {
+            CheckFloatingCondition();
+            
+            if (_isFloating)
+            {
+                _floatProgressTimer += Time.fixedDeltaTime;
+                ApplyFloatingMovement();
+            }
+            else
+            {
+                ApplyNormalMovement();
+            }
+        }
+
+        private void ApplyNormalMovement()
+        {
+            Vector2 velocity = _rigidbody.velocity;
+            velocity.x = _zombieData.Speed * MOVE_DIRECTION;
+            _rigidbody.velocity = velocity;
+        }
+
+        private void ApplyFloatingMovement()
+        {
+            float progress = Mathf.Clamp01(_floatProgressTimer / _zombieData.FloatDuration);
+            float easedProgress = CalculateEaseInOut(progress);
+            
+            // 수평 이동과 수직 이동을 분리하여 계산
+            float arcHeight = CalculateArcHeight(easedProgress, _floatStartPosition, _floatTargetPosition);
+            Vector2 horizontalPosition = Vector2.Lerp(_floatStartPosition, _floatTargetPosition, easedProgress);
+            Vector2 targetPosition = horizontalPosition + Vector2.up * arcHeight;
+            
+            // 부드러운 이동을 위한 보간
+            Vector2 smoothedPosition = Vector2.Lerp(
+                _rigidbody.position, 
+                targetPosition, 
+                Time.fixedDeltaTime * POSITION_SMOOTHING_MULTIPLIER
+            );
+            
+            _rigidbody.MovePosition(smoothedPosition);
+
+            if (progress >= 1f)
+            {
+                CompleteFloating();
+            }
+        }
+
+        private float CalculateArcHeight(float progress, Vector2 start, Vector2 end)
+        {
+            float distance = Vector2.Distance(start, end);
+            return Mathf.Sin(progress * Mathf.PI) * distance * FLOAT_HEIGHT_MULTIPLIER;
+        }
+
+        private float CalculateEaseInOut(float t)
+        {
+            return t < 0.5f ? 
+                2f * t * t : 
+                1f - Mathf.Pow(-2f * t + 2f, 2f) * 0.5f;
+        }
+
+        private void CompleteFloating()
+        {
+            _isFloating = false;
+            _rigidbody.gravityScale = 1f;
+        }
+
+        private void CheckFloatingCondition()
+        {
+            if (!_canStartFloating) return;
+
+            Vector2 rayStart = GetRaycastOrigin();
+            Vector2 frontDir = CalculateRaycastDirection(_zombieData.FrontRaycastAngle);
+            Vector2 backDir = CalculateRaycastDirection(_zombieData.BackRaycastAngle, true);
+            Vector2 upperDir = CalculateRaycastDirection(_zombieData.UpperRaycastAngle);
+
+            var raycastResults = PerformRaycasts(rayStart, frontDir, backDir, upperDir);
+
+            if (ShouldStartFloating(raycastResults))
+            {
+                StartFloating(_frontHits[1].transform.position);
+            }
+        }
+
+        private Vector2 GetRaycastOrigin()
+        {
+            return (Vector2)transform.position + Vector2.up * _zombieData.RaycastHeightOffset;
+        }
+
+        private Vector2 CalculateRaycastDirection(float angle, bool isReversed = false)
+        {
+            Vector2 direction = Quaternion.Euler(0, 0, angle) * BaseRaycastDirection;
+            return isReversed ? -direction : direction;
+        }
+
+        private (bool front, bool back, bool upper) PerformRaycasts(
+            Vector2 origin, 
+            Vector2 frontDir, 
+            Vector2 backDir, 
+            Vector2 upperDir)
+        {
+            int frontHits = Physics2D.RaycastNonAlloc(origin, frontDir, _frontHits, _zombieData.RaycastDistance, _zombieLayer);
+            int backHits = Physics2D.RaycastNonAlloc(origin, backDir, _backHits, _zombieData.RaycastDistance, _zombieLayer);
+            int upperHits = Physics2D.RaycastNonAlloc(origin, upperDir, _frontUpperHits, _zombieData.UpperRaycastDistance, _zombieLayer);
+
+            return (
+                frontHits > RAYCAST_SELF_INDEX,
+                backHits > RAYCAST_SELF_INDEX,
+                upperHits > RAYCAST_SELF_INDEX
+            );
+        }
+
+        private bool ShouldStartFloating((bool front, bool back, bool upper) raycastResults)
+        {
+            return raycastResults.front && !raycastResults.back && !raycastResults.upper;
+        }
+
+        private void StartFloating(Vector2 targetPos)
+        {
+            _isFloating = true;
+            _canStartFloating = false;
+            _floatProgressTimer = 0f;
+            _floatCooldownTimer = 0f;
+            
+            _floatStartPosition = transform.position;
+            _floatTargetPosition = targetPos + Vector2.up * _zombieData.FloatHeightOffset;
+            
+            _rigidbody.velocity = Vector2.zero;
+            _rigidbody.gravityScale = 0f;
+        }
+
+        private async UniTaskVoid StartFloatingCheck()
+        {
+            while (!_cts.Token.IsCancellationRequested)
+            {
+                await UniTask.WaitForFixedUpdate(_cts.Token);
+
+                if (!_canStartFloating && !_isFloating)
+                {
+                    _floatCooldownTimer += Time.fixedDeltaTime;
+                    if (_floatCooldownTimer >= _zombieData.FloatCooldown)
+                    {
+                        _canStartFloating = true;
+                        _rigidbody.gravityScale = 1f;
+                    }
+                }
+            }
         }
 
         private void OnDestroy()
         {
             _cts?.Cancel();
             _cts?.Dispose();
-        }
-
-        private void FixedUpdate()
-        {
-            ApplyMovement();
-            CheckJumpCondition();
-            ApplyCustomGravity();
-        }
-
-        private void ApplyMovement()
-        {
-            Vector2 velocity = _rigidbody.velocity;
-            
-            // 부유 중이고 앞에 장애물이 있을 때는 수평 속도 감소
-            if (_isFloating && CheckFrontObstacle())
-            {
-                velocity.x = _zombieData.Speed * X_MOVE_DIRECTION * 0.7f;
-            }
-            else
-            {
-                velocity.x = _zombieData.Speed * X_MOVE_DIRECTION;
-            }
-            
-            _rigidbody.velocity = velocity;
-        }
-
-        private bool CheckFrontObstacle()
-        {
-            Vector2 rayStart = (Vector2)transform.position + Vector2.up * _zombieData.RaycastHeightOffset;
-            Vector2 baseDirection = Vector2.right * (_rigidbody.velocity.x > 0 ? 1 : -1);
-            Vector2 frontDirection = Quaternion.Euler(0, 0, _zombieData.FrontRaycastAngle) * baseDirection;
-            
-            int frontHitCount = Physics2D.RaycastNonAlloc(rayStart, frontDirection, _frontHits, _zombieData.RaycastDistance, _zombieLayer);
-            return frontHitCount > SELF_INDEX;
-        }
-
-        private void CheckJumpCondition()
-        {
-            Vector2 rayStart = (Vector2)transform.position + Vector2.up * _zombieData.RaycastHeightOffset;
-            Vector2 baseDirection = Vector2.right * (_rigidbody.velocity.x > 0 ? 1 : -1);
-
-            Vector2 frontDirection = Quaternion.Euler(0, 0, _zombieData.FrontRaycastAngle) * baseDirection;
-            Vector2 backDirection = Quaternion.Euler(0, 0, _zombieData.BackRaycastAngle) * -baseDirection;
-            Vector2 frontUpperDirection = Quaternion.Euler(0, 0, _zombieData.UpperRaycastAngle) * baseDirection;
-
-            int frontHitCount = Physics2D.RaycastNonAlloc(rayStart, frontDirection, _frontHits, _zombieData.RaycastDistance, _zombieLayer);
-            int backHitCount = Physics2D.RaycastNonAlloc(rayStart, backDirection, _backHits, _zombieData.RaycastDistance, _zombieLayer);
-            int frontUpperHitCount = Physics2D.RaycastNonAlloc(rayStart, frontUpperDirection, _frontUpperHits, _zombieData.UpperRaycastDistance, _zombieLayer);
-
-            bool hasZombieInFront = frontHitCount > SELF_INDEX;
-            bool hasZombieInBack = backHitCount > SELF_INDEX;
-            bool hasZombieAbove = frontUpperHitCount > SELF_INDEX;
-
-            if (hasZombieInFront && !hasZombieInBack && !hasZombieAbove && _canStartNewJump)
-            {
-                StartJump();
-            }
-
-            if (_isFloating)
-            {
-                if (_rigidbody.velocity.y < _zombieData.MaxFloatSpeed)
-                {
-                    Vector2 floatDirection = hasZombieInFront ? 
-                        (Vector2.up * 0.9f + Vector2.right * X_MOVE_DIRECTION * 0.1f).normalized : 
-                        Vector2.up;
-
-                    _rigidbody.AddForce(floatDirection * _zombieData.FloatForce, ForceMode2D.Force);
-                }
-            }
-        }
-
-        private void StartJump()
-        {
-            _isFloating = true;
-            _canStartNewJump = false;
-            _jumpTimer = 0f;
-        }
-
-        private void ApplyCustomGravity()
-        {
-            float gravityMultiplier = _isFloating ? 0.5f : 1.0f;
-            _rigidbody.AddForce(Vector2.down * (_zombieData.CustomGravity * gravityMultiplier), ForceMode2D.Force);
-        }
-
-        private async UniTaskVoid StartJumpCheck()
-        {
-            while (!_cts.Token.IsCancellationRequested)
-            {
-                if (!_canStartNewJump)
-                {
-                    _jumpTimer += Time.fixedDeltaTime;
-
-                    if (_jumpTimer >= _zombieData.FloatDuration && _isFloating)
-                    {
-                        _isFloating = false;
-                    }
-
-                    if (_jumpTimer >= _zombieData.JumpCooldown)
-                    {
-                        _canStartNewJump = true;
-                    }
-                }
-                await UniTask.WaitForFixedUpdate(_cts.Token);
-            }
         }
     }
 }
