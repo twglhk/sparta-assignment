@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2fb65353a586a478e8183bd1f7865a9b, type: 3}
   m_Name: TowerData
   m_EditorClassIdentifier: 
-  MoveSpeed: 2
+  MoveSpeed: 5.12
   AttackRange: 5
   AttackRate: 1
   AttackDamage: 10
