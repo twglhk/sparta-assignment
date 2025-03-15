@@ -232,6 +232,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 360675798204360400, guid: 5adc49a3cd414458b96cda173bbaeffb, type: 3}
   m_PrefabInstance: {fileID: 135695950}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &178283906
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 178283907}
+  m_Layer: 3
+  m_Name: Cam Pivot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &178283907
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 178283906}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1489341059}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &180094793
 GameObject:
   m_ObjectHideFlags: 0
@@ -771,7 +802,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5e9c0145ad824a3b828a9d292a041cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _target: {fileID: 1489341059}
+  _target: {fileID: 178283907}
   _offset: {x: 0, y: 0, z: -10}
   _followX: 1
   _followY: 0
@@ -1248,8 +1279,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _zombiePrefab: {fileID: 319310827380095937, guid: e48e7c461a85c463cba5a999afb91a67, type: 3}
-  _poolSize: 20
-  _autoExpand: 1
+  _defaultCapacity: 20
+  _maxPoolSize: 50
 --- !u!1 &988428231
 GameObject:
   m_ObjectHideFlags: 0
@@ -1651,6 +1682,7 @@ Transform:
   m_Children:
   - {fileID: 988428232}
   - {fileID: 1783366072}
+  - {fileID: 178283907}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1489341060
@@ -1731,7 +1763,7 @@ CapsuleCollider2D:
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}
-  m_Size: {x: 0.5, y: 1}
+  m_Size: {x: 1, y: 1}
   m_Direction: 0
 --- !u!61 &1489341063
 BoxCollider2D:
