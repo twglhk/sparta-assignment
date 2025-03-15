@@ -3,20 +3,21 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - Hero
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Truck
   - Water
   - UI
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  - Ground1
+  - Ground2
+  - Ground3
+  - Zombie1
+  - Zombie2
+  - Zombie3
   - 
   - 
   - 
