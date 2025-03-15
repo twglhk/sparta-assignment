@@ -12,12 +12,13 @@ namespace TDS.Cam
         [SerializeField] private Vector3 _offset = new(0f, 0f, -10f);
         
         [Header("Follow Settings")]
-        [SerializeField] private float _smoothSpeed = 5f;
+        [SerializeField] private float _smoothTime = 0.2f;
         [SerializeField] private bool _followX = true;
         [SerializeField] private bool _followY = false;
         
         private Vector3 _currentVelocity;
         private Camera _camera;
+        private Vector3 _targetPosition;
         
         private void Start()
         {
@@ -29,26 +30,32 @@ namespace TDS.Cam
             Debug.Assert(_target != null, "추적할 타겟이 설정되지 않았습니다.");
             _camera = GetComponent<Camera>();
             Debug.Assert(_camera != null, "Camera 컴포넌트를 찾을 수 없습니다.");
+            
+            // 초기 위치 설정
+            _targetPosition = _target.position + _offset;
+            transform.position = _targetPosition;
+        }
+        
+        private void FixedUpdate()
+        {   
+            // 타겟 위치 업데이트 (FixedUpdate에서 계산)
+            _targetPosition = _target.position + _offset;
+            
+            // X, Y 축 추적 여부에 따라 현재 카메라 위치 유지
+            if (!_followX) _targetPosition.x = transform.position.x;
+            if (!_followY) _targetPosition.y = transform.position.y;
         }
         
         private void LateUpdate()
         {
-            if (_target == null) return;
-            
-            // 현재 위치에서 타겟의 위치로 부드럽게 이동
-            Vector3 targetPosition = _target.position + _offset;
-            
-            // X, Y 축 추적 여부에 따라 현재 카메라 위치 유지
-            if (!_followX) targetPosition.x = transform.position.x;
-            if (!_followY) targetPosition.y = transform.position.y;
-            
-            // 부드러운 이동을 위해 SmoothDamp 사용
-            transform.position = Vector3.SmoothDamp(
+            Vector3 newPosition = Vector3.SmoothDamp(
                 transform.position,
-                targetPosition,
+                _targetPosition,
                 ref _currentVelocity,
-                1f / _smoothSpeed
+                _smoothTime
             );
+
+            transform.position = newPosition;
         }
         
 #if UNITY_EDITOR
