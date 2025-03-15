@@ -78,7 +78,6 @@ namespace TDS.Zombie
 
         private void InitializeComponents()
         {
-            _rigidbody.gravityScale = 1f;
             _rigidbody.constraints = RigidbodyConstraints2D.FreezeRotation;
             _zombieLayer = 1 << gameObject.layer;
 
