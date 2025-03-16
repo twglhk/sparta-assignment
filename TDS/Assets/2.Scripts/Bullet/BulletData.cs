@@ -2,6 +2,9 @@ using UnityEngine;
 
 namespace TDS.Bullet
 {
+    /// <summary>
+    /// 총알 데이터
+    /// </summary>
     [CreateAssetMenu(fileName = "BulletData", menuName = "TDS/Bullet Data")]
     public sealed class BulletData : ScriptableObject
     {
