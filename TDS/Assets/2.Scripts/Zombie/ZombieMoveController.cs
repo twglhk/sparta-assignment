@@ -1,6 +1,7 @@
 using UnityEngine;
 using Cysharp.Threading.Tasks;
 using System.Threading;
+using TDS.Common;
 
 namespace TDS.Zombie
 {
@@ -17,7 +18,8 @@ namespace TDS.Zombie
         private RaycastHit2D[] _backHits;
         private RaycastHit2D[] _frontUpperHits;
         private CancellationTokenSource _cts;
-        
+        private float _defaultGravityScale;
+
         // 부유 상태 관련 변수들
         private bool _isFloating;
         private bool _canStartFloating;
@@ -46,7 +48,8 @@ namespace TDS.Zombie
         private void InitializeComponents()
         {
             _rigidbody.constraints = RigidbodyConstraints2D.FreezeRotation;
-            _zombieLayer = 1 << gameObject.layer;
+            _defaultGravityScale = _rigidbody.gravityScale;
+            _zombieLayer = Layers.ZOMBIE_MASK;
 
             _frontHits = new RaycastHit2D[MAX_RAYCAST_HITS];
             _backHits = new RaycastHit2D[MAX_RAYCAST_HITS];
@@ -60,7 +63,7 @@ namespace TDS.Zombie
         private void FixedUpdate()
         {
             CheckFloatingCondition();
-            
+
             if (_isFloating)
             {
                 _floatProgressTimer += Time.fixedDeltaTime;
@@ -81,24 +84,24 @@ namespace TDS.Zombie
 
         private void ApplyFloatingMovement()
         {
-            float progress = Mathf.Clamp01(_floatProgressTimer / _zombieData.FloatDuration);
+            float progress = _floatProgressTimer / _zombieData.FloatDuration;
             float easedProgress = CalculateEaseInOut(progress);
-            
+
             // 수평 이동과 수직 이동을 분리하여 계산
             float arcHeight = CalculateArcHeight(easedProgress, _floatStartPosition, _floatTargetPosition);
             Vector2 horizontalPosition = Vector2.Lerp(_floatStartPosition, _floatTargetPosition, easedProgress);
             Vector2 targetPosition = horizontalPosition + Vector2.up * arcHeight;
-            
+
             // 부드러운 이동을 위한 보간
             Vector2 smoothedPosition = Vector2.Lerp(
-                _rigidbody.position, 
-                targetPosition, 
+                _rigidbody.position,
+                targetPosition,
                 Time.fixedDeltaTime * POSITION_SMOOTHING_MULTIPLIER
             );
-            
+
             _rigidbody.MovePosition(smoothedPosition);
 
-            if (progress > 1f)
+            if (progress > 1.0f)
             {
                 CompleteFloating();
             }
@@ -112,19 +115,20 @@ namespace TDS.Zombie
 
         private float CalculateEaseInOut(float t)
         {
-            return t < 0.5f ? 
-                2f * t * t : 
+            return t < 0.5f ?
+                2f * t * t :
                 1f - Mathf.Pow(-2f * t + 2f, 2f) * 0.5f;
         }
 
         private void CompleteFloating()
         {
             _isFloating = false;
-            _rigidbody.gravityScale = 1f;
+            _rigidbody.gravityScale = _defaultGravityScale;
         }
 
         private void CheckFloatingCondition()
         {
+            if (_isFloating) return;
             if (!_canStartFloating) return;
 
             Vector2 rayStart = GetRaycastOrigin();
@@ -152,9 +156,9 @@ namespace TDS.Zombie
         }
 
         private (bool front, bool back, bool upper) PerformRaycasts(
-            Vector2 origin, 
-            Vector2 frontDir, 
-            Vector2 backDir, 
+            Vector2 origin,
+            Vector2 frontDir,
+            Vector2 backDir,
             Vector2 upperDir)
         {
             int frontHits = Physics2D.RaycastNonAlloc(origin, frontDir, _frontHits, _zombieData.RaycastDistance, _zombieLayer);
@@ -179,10 +183,10 @@ namespace TDS.Zombie
             _canStartFloating = false;
             _floatProgressTimer = 0f;
             _floatCooldownTimer = 0f;
-            
+
             _floatStartPosition = transform.position;
             _floatTargetPosition = targetPos + Vector2.up * _zombieData.FloatHeightOffset;
-            
+
             _rigidbody.velocity = Vector2.zero;
             _rigidbody.gravityScale = 0f;
         }
@@ -196,10 +200,9 @@ namespace TDS.Zombie
                 if (!_canStartFloating && !_isFloating)
                 {
                     _floatCooldownTimer += Time.fixedDeltaTime;
-                    if (_floatCooldownTimer >= _zombieData.FloatCooldown)
+                    if (_floatCooldownTimer > _zombieData.FloatCooldown)
                     {
                         _canStartFloating = true;
-                        _rigidbody.gravityScale = 1f;
                     }
                 }
             }
@@ -211,6 +214,16 @@ namespace TDS.Zombie
             _cts?.Dispose();
         }
 
+        public void ResetState()
+        {
+            _isFloating = false;
+            _canStartFloating = false;
+            _floatCooldownTimer = INITIAL_COOLDOWN;
+            _floatProgressTimer = 0f;
+
+            _rigidbody.velocity = Vector2.zero;
+            _rigidbody.gravityScale = _defaultGravityScale;
+        }
 
 #if UNITY_EDITOR
         private void OnDrawGizmos()

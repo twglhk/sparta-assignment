@@ -6,6 +6,7 @@ namespace TDS.Zombie
     public class ZombieHealth : MonoBehaviour
     {
         [Header("Settings")]
+        [SerializeField] private ZombieRoot _root;
         [SerializeField] private ZombieData _data;
         
         private ZombieModel _model;
@@ -40,7 +41,7 @@ namespace TDS.Zombie
                 .Subscribe(_ => OnDeath())
                 .AddTo(_disposables);
         }
-        
+
         private void OnHpChanged(int newHp)
         {
             // 체력 변화 시 필요한 처리
@@ -48,24 +49,14 @@ namespace TDS.Zombie
         
         private void OnDeath()
         {
-            // 사망 시 필요한 처리
-            gameObject.SetActive(false);
+            _root.Pool.Release(gameObject);
+            _model?.Reset();
         }
         
         public void TakeDamage(int damage)
         {
             int finalDamage = Mathf.Max(0, damage);
             _model.TakeDamage(finalDamage);
-        }
-        
-        private void OnEnable()
-        {
-            _model?.Reset();
-        }
-        
-        private void OnDisable()
-        {
-            _model?.Reset();
         }
         
         private void OnDestroy()

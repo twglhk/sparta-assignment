@@ -40,6 +40,7 @@ namespace TDS.Zombie
         private GameObject CreateZombie()
         {
             var zombie = Instantiate(_zombiePrefab, _poolContainer);
+            zombie.GetComponent<ZombieRoot>().Initialize(_pool);
             zombie.SetActive(false);
             return zombie;
         }
@@ -52,6 +53,7 @@ namespace TDS.Zombie
         
         private void OnReleaseZombie(GameObject zombie)
         {
+            zombie.GetComponent<ZombieRoot>().Reset();
             zombie.SetActive(false);
             _activeZombies.Remove(zombie);
         }
@@ -68,10 +70,7 @@ namespace TDS.Zombie
         
         public void ReturnZombie(GameObject zombie)
         {
-            if (zombie != null)
-            {
-                _pool.Release(zombie);
-            }
+            _pool.Release(zombie);
         }
         
         public int GetActiveZombieCount()
