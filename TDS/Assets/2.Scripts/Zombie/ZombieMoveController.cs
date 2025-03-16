@@ -37,39 +37,6 @@ namespace TDS.Zombie
 
         private static readonly Vector2 BaseRaycastDirection = Vector2.left;
 
-#if UNITY_EDITOR
-        private void OnValidate()
-        {
-            if (_zombieData == null)
-            {
-                Debug.LogError($"[{nameof(ZombieMoveController)}] ZombieData is not assigned to {gameObject.name}!");
-            }
-        }
-
-        private void OnDrawGizmos()
-        {
-            if (_zombieData == null) return;
-
-            Vector2 rayStart = GetRaycastOrigin();
-
-            // 레이캐스트 방향 계산
-            Vector2 frontDir = CalculateRaycastDirection(_zombieData.FrontRaycastAngle);
-            Vector2 backDir = CalculateRaycastDirection(_zombieData.BackRaycastAngle, true);
-            Vector2 upperDir = CalculateRaycastDirection(_zombieData.UpperRaycastAngle);
-
-            // 레이캐스트 시각화
-            DrawRaycastGizmo(rayStart, frontDir, _zombieData.RaycastDistance, Color.red);
-            DrawRaycastGizmo(rayStart, backDir, _zombieData.RaycastDistance, Color.blue);
-            DrawRaycastGizmo(rayStart, upperDir, _zombieData.UpperRaycastDistance, Color.yellow);
-        }
-
-        private void DrawRaycastGizmo(Vector2 start, Vector2 direction, float distance, Color color)
-        {
-            Gizmos.color = color;
-            Gizmos.DrawRay(start, direction * distance);
-        }
-#endif
-
         private void Start()
         {
             InitializeComponents();
@@ -131,7 +98,7 @@ namespace TDS.Zombie
             
             _rigidbody.MovePosition(smoothedPosition);
 
-            if (progress >= 1f)
+            if (progress > 1f)
             {
                 CompleteFloating();
             }
@@ -243,5 +210,31 @@ namespace TDS.Zombie
             _cts?.Cancel();
             _cts?.Dispose();
         }
+
+
+#if UNITY_EDITOR
+        private void OnDrawGizmos()
+        {
+            if (_zombieData == null) return;
+
+            Vector2 rayStart = GetRaycastOrigin();
+
+            // 레이캐스트 방향 계산
+            Vector2 frontDir = CalculateRaycastDirection(_zombieData.FrontRaycastAngle);
+            Vector2 backDir = CalculateRaycastDirection(_zombieData.BackRaycastAngle, true);
+            Vector2 upperDir = CalculateRaycastDirection(_zombieData.UpperRaycastAngle);
+
+            // 레이캐스트 시각화
+            DrawRaycastGizmo(rayStart, frontDir, _zombieData.RaycastDistance, Color.red);
+            DrawRaycastGizmo(rayStart, backDir, _zombieData.RaycastDistance, Color.blue);
+            DrawRaycastGizmo(rayStart, upperDir, _zombieData.UpperRaycastDistance, Color.yellow);
+        }
+
+        private void DrawRaycastGizmo(Vector2 start, Vector2 direction, float distance, Color color)
+        {
+            Gizmos.color = color;
+            Gizmos.DrawRay(start, direction * distance);
+        }
+#endif
     }
 }
