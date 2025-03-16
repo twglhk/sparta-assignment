@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Speed: 20
   MaxDistance: 30
-  MinDamage: 60
-  MaxDamage: 100
+  MinDamage: 10
+  MaxDamage: 25

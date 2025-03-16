@@ -1237,11 +1237,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _tower: {fileID: 1489341059}
   _spawnDistance: 20
-  _spawnHeight: 0
+  _spawnHeight: 5
   _spawnInterval: 2
-  _maxZombies: 20
-  _spawnYOffset: 1
-  _minSpawnY: -4
+  _maxZombies: 10
+  _spawnYOffset: 0
+  _minSpawnY: 0
   _maxSpawnY: 4
 --- !u!114 &936979558
 MonoBehaviour:
@@ -2173,7 +2173,7 @@ MonoBehaviour:
   _firePoint: {fileID: 1756711020}
   _maxBullets: 100
   _detectionRadius: 10
-  _fireInterval: 0.5
+  _fireInterval: 1
   _autoFire: 1
   _maxDetectableZombies: 20
 --- !u!114 &2017366373

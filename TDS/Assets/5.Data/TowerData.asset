@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   MoveSpeed: 5.12
   AttackRange: 5
-  AttackRate: 1
+  AttackRate: 3
   AttackDamage: 10

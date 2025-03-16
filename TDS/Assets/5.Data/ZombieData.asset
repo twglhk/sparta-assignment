@@ -12,14 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa92e2d9e978c4865a2cb3a018c91621, type: 3}
   m_Name: ZombieData
   m_EditorClassIdentifier: 
+  MaxHp: 100
   Speed: 5
   FloatSpeed: 5
   RaycastDistance: 1
-  UpperRaycastDistance: 1.25
+  UpperRaycastDistance: 1.1
   RaycastHeightOffset: 0.5
   FrontRaycastAngle: 20
   BackRaycastAngle: 15
-  UpperRaycastAngle: -30
+  UpperRaycastAngle: -34.2
   FloatDuration: 0.25
   FloatCooldown: 1
   FloatHeightOffset: 1
