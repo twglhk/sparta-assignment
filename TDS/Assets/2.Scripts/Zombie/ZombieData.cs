@@ -6,7 +6,7 @@ namespace TDS.Zombie
     public class ZombieData : ScriptableObject
     {
         [Header("Stats")]
-        public float MaxHp = 100f;
+        public int MaxHp = 100;
 
         [Header("Movement")]
         public float Speed = 2f;

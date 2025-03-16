@@ -1,6 +1,5 @@
 using UnityEngine;
 using UniRx;
-using System;
 
 namespace TDS.Zombie
 {
@@ -12,7 +11,7 @@ namespace TDS.Zombie
         private ZombieModel _model;
         private CompositeDisposable _disposables = new CompositeDisposable();
         
-        public IReadOnlyReactiveProperty<float> CurrentHp => _model?.CurrentHp;
+        public IReadOnlyReactiveProperty<int> CurrentHp => _model?.CurrentHp;
         public IReadOnlyReactiveProperty<bool> IsDead => _model?.IsDead;
         public float HpRatio => _model?.HpRatio ?? 0f;
         
@@ -42,7 +41,7 @@ namespace TDS.Zombie
                 .AddTo(_disposables);
         }
         
-        private void OnHpChanged(float newHp)
+        private void OnHpChanged(int newHp)
         {
             // 체력 변화 시 필요한 처리
         }
@@ -53,9 +52,9 @@ namespace TDS.Zombie
             gameObject.SetActive(false);
         }
         
-        public void TakeDamage(float damage)
+        public void TakeDamage(int damage)
         {
-            float finalDamage = Mathf.Max(0, damage);
+            int finalDamage = Mathf.Max(0, damage);
             _model.TakeDamage(finalDamage);
         }
         
