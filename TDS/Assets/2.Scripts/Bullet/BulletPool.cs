@@ -4,6 +4,9 @@ using System.Collections.Generic;
 
 namespace TDS.Bullet
 {
+    /// <summary>
+    /// 총알 풀 클래스
+    /// </summary>
     public sealed class BulletPool : MonoBehaviour
     {
         [Header("Pool Settings")]
