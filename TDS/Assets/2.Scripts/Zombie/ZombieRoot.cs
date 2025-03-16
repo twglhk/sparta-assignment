@@ -1,18 +1,20 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-
-public class ZombieRoot : MonoBehaviour
+using UnityEngine.Pool;
+namespace TDS.Zombie
 {
-    // Start is called before the first frame update
-    void Start()
+    public class ZombieRoot : MonoBehaviour
     {
-        
-    }
+        [SerializeField] private ZombieMoveController _moveController;
+        public IObjectPool<GameObject> Pool { get; private set; }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+        public void Initialize(IObjectPool<GameObject> pool)
+        {
+            Pool = pool;
+        }
+
+        public void Reset()
+        {
+            _moveController.ResetState();
+        }
     }
 }
