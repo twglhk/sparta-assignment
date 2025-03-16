@@ -22,5 +22,5 @@ MonoBehaviour:
   BackRaycastAngle: 15
   UpperRaycastAngle: -34.2
   FloatDuration: 0.25
-  FloatCooldown: 1
+  FloatCooldown: 2
   FloatHeightOffset: 1

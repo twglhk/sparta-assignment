@@ -1238,8 +1238,8 @@ MonoBehaviour:
   _tower: {fileID: 1489341059}
   _spawnDistance: 20
   _spawnHeight: 5
-  _spawnInterval: 2
-  _maxZombies: 10
+  _spawnInterval: 1
+  _maxZombies: 50
   _spawnYOffset: 0
   _minSpawnY: 0
   _maxSpawnY: 4
