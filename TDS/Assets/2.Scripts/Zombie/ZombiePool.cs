@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Pool;
 using System.Collections.Generic;
 
-namespace TDS.Enemy
+namespace TDS.Zombie
 {
     public sealed class ZombiePool : MonoBehaviour
     {

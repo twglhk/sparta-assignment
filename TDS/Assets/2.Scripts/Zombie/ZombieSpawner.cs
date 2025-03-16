@@ -2,7 +2,7 @@ using UnityEngine;
 using Cysharp.Threading.Tasks;
 using System.Threading;
 
-namespace TDS.Enemy
+namespace TDS.Zombie
 {
     public class ZombieSpawner : MonoBehaviour
     {
