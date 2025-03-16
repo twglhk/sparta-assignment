@@ -98,11 +98,7 @@ namespace TDS.Bullet
             
             _isReturning = true;
             DisablePhysics();
-            
-            if (_pool != null)
-            {
-                _pool.Release(gameObject);
-            }
+            _pool.Release(gameObject);
         }
         
         private void OnDisable()
@@ -113,8 +109,6 @@ namespace TDS.Bullet
         
         private void OnEnable()
         {
-            // 활성화될 때는 물리 컴포넌트를 초기화만 하고,
-            // Initialize에서 실제로 활성화
             DisablePhysics();
         }
     }
